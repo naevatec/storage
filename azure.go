@@ -55,12 +55,21 @@ type azureBLOBStorage struct {
 	serviceUrl string
 }
 
+// testOnlyIgnoreAccountKeySentinel: TEMPORARY, NOT PART OF OpenVidu/storage PR #1.
+// Lets this build's AccountKey be a throwaway non-empty value (so the official,
+// unmodified openvidu-operator image's "${openvidu.AZURE_ACCOUNT_KEY:?mandatory}"
+// check in openvidu.env is satisfied, since that image can't be rebuilt without
+// access to OpenVidu's private licensing-go/offline-licensing-go modules) while
+// this container still exercises the real DefaultAzureCredential path. Must never
+// reach the actual pull request.
+const testOnlyIgnoreAccountKeySentinel = "TEST_ONLY_IGNORE_MANAGED_IDENTITY_VALIDATION"
+
 func NewAzure(conf *AzureConfig) (Storage, error) {
 	serviceUrl := fmt.Sprintf("https://%s.blob.core.windows.net/", conf.AccountName)
 
 	var client *azblob.Client
 	var err error
-	if conf.AccountKey == "" {
+	if conf.AccountKey == "" || conf.AccountKey == testOnlyIgnoreAccountKeySentinel {
 		// No shared key configured: fall back to Azure AD authentication
 		// (managed identity, workload identity, CLI/env credentials, in
 		// that order) via DefaultAzureCredential, so a VM or pod granted
